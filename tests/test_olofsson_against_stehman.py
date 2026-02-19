@@ -1,6 +1,7 @@
 import pytest
 import pandas as pd
 import numpy as np
+from pathlib import Path
 
 from acc_assessment.stehman import Stehman
 from acc_assessment.olofsson import Olofsson
@@ -8,11 +9,12 @@ from acc_assessment.olofsson import Olofsson
 
 TOLERANCE = 1e-4
 CLASSES = ["A", "B", "C", "D"]
+TESTS_DIR = Path(__file__).resolve().parent
 
 
 @pytest.fixture()
 def assessments():
-    data = pd.read_csv("./tests/stehman2014_table2.csv", skiprows=1)
+    data = pd.read_csv(TESTS_DIR / "stehman2014_table2.csv", skiprows=1)
 
     population = dict(zip(CLASSES, [40000, 30000, 20000, 10000]))
 

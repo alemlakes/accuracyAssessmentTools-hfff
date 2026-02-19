@@ -1,12 +1,14 @@
 import pytest
 import pandas as pd
 import numpy as np
+from pathlib import Path
 from acc_assessment.cardille import Cardille
 from acc_assessment.stehman import Stehman
 from acc_assessment.utils import _expand_probabilities
 from utils import check_within_tolerance
 
 TOLERANCE = 1e-4
+TESTS_DIR = Path(__file__).resolve().parent
 
 def _scale_class_probs(df, max_prob=0.7):
     num_classes = df.shape[1]
@@ -15,7 +17,7 @@ def _scale_class_probs(df, max_prob=0.7):
 
 @pytest.fixture
 def stehman_table():
-    return pd.read_csv("./tests/stehman2014_table2.csv", skiprows=1)
+    return pd.read_csv(TESTS_DIR / "stehman2014_table2.csv", skiprows=1)
 
 @pytest.fixture
 def strata_totals():
@@ -104,7 +106,7 @@ class TestCardilleSameAsStehman():
 
 @pytest.fixture
 def example_cardille_assessment():
-    data = pd.read_csv("./tests/cardille_table.csv", skiprows=1)
+    data = pd.read_csv(TESTS_DIR / "cardille_table.csv", skiprows=1)
     ref_data = data.filter(like='.').copy()
     model_data = data.drop(ref_data.columns, axis=1)
     ref_data.columns = [x.split('.')[0] for x in ref_data.columns]

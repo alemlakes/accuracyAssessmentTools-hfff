@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from pathlib import Path
 
 from pandas.testing import assert_frame_equal
 
@@ -9,6 +10,7 @@ from acc_assessment.stehman import Stehman
 
 
 TOL = 1e-9
+TESTS_DIR = Path(__file__).resolve().parent
 
 
 def _build_crisp_probability_tables(data, map_col, ref_col, strata_col, id_col="id"):
@@ -28,7 +30,7 @@ def _build_crisp_probability_tables(data, map_col, ref_col, strata_col, id_col="
 
 def test_equivalence_constraint_stehman_gue_mcem():
     """Crisp probabilities must reproduce the crisp benchmark exactly."""
-    data = pd.read_csv("./tests/stehman2014_table2.csv", skiprows=1)
+    data = pd.read_csv(TESTS_DIR / "stehman2014_table2.csv", skiprows=1)
     strata_population = {1: 40000, 2: 30000, 3: 20000, 4: 10000}
     map_probs, ref_probs = _build_crisp_probability_tables(
         data,

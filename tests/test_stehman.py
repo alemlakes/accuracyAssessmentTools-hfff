@@ -1,12 +1,15 @@
 import pytest
 import pandas as pd
+from pathlib import Path
 from acc_assessment.stehman import Stehman
 from utils import check_within_tolerance
+
+TESTS_DIR = Path(__file__).resolve().parent
 
 @pytest.fixture(autouse=True)
 def assessment():
     return Stehman(
-        pd.read_csv("./tests/stehman2014_table2.csv", skiprows=1),
+        pd.read_csv(TESTS_DIR / "stehman2014_table2.csv", skiprows=1),
         "Stratum",
         "Map class",
         "Reference class",

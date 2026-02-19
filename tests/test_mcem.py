@@ -1,8 +1,12 @@
 import numpy as np
 import pandas as pd
+from pathlib import Path
 
 from acc_assessment.mcem import MCEM
 from acc_assessment.stehman import Stehman
+
+
+TESTS_DIR = Path(__file__).resolve().parent
 
 
 def _crisp_probability_tables(data, map_col, ref_col, strata_col):
@@ -21,7 +25,7 @@ def _crisp_probability_tables(data, map_col, ref_col, strata_col):
 
 
 def test_mcem_crisp_matches_stehman():
-    data = pd.read_csv("./tests/stehman2014_table2.csv", skiprows=1)
+    data = pd.read_csv(TESTS_DIR / "stehman2014_table2.csv", skiprows=1)
     strata_population = {1: 40000, 2: 30000, 3: 20000, 4: 10000}
     map_probs, ref_probs = _crisp_probability_tables(
         data,

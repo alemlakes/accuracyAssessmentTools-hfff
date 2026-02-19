@@ -1,14 +1,18 @@
 import numpy as np
 import pandas as pd
 import pytest
+from pathlib import Path
 
 from acc_assessment.gue import GUE
 from acc_assessment.stehman import Stehman
 
 
+TESTS_DIR = Path(__file__).resolve().parent
+
+
 @pytest.fixture
 def stehman_table():
-    return pd.read_csv("./tests/stehman2014_table2.csv", skiprows=1)
+    return pd.read_csv(TESTS_DIR / "stehman2014_table2.csv", skiprows=1)
 
 
 @pytest.fixture
