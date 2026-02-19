@@ -54,7 +54,7 @@ class Olofsson(AccuracyAssessment):
         props_as_df = pd.DataFrame(
             self.mapped_proportions, index=self.mapped_proportions.keys()
         ).T
-        _matrix = matrix.divide(matrix.sum(1), axis="index")
+        _matrix = matrix.divide(matrix.sum(axis=1), axis="index")
         self._error_matrix = _matrix.multiply(props_as_df).fillna(0.0)
 
     def overall_accuracy(self):
