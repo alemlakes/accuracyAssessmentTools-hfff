@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import warnings
 
 from acc_assessment.utils import users_accuracy_error, producers_accuracy_error
 from acc_assessment.utils import AccuracyAssessment
@@ -147,11 +148,18 @@ class Stehman(AccuracyAssessment):
             x_bar_h = np.sum(x_u * selector) / n_star_h
             numerator_total += N_star_h * y_bar_h
             denominator_total += N_star_h * x_bar_h
+
+        if np.isclose(denominator_total, 0.0, atol=1e-12):
+            return np.nan
+
         return numerator_total / denominator_total
 
     def _var_R_hat(self, y_u, x_u):
         """ equation 28 """
         R = self._R_hat(y_u, x_u)
+        if np.isnan(R):
+            return np.nan
+
         X_hat = 0
         total = 0
         for h, N_star_h in iter(self.strata_population.items()):
@@ -188,6 +196,23 @@ class Stehman(AccuracyAssessment):
     def _design_consistent_estimator(self, y_u, x_u):
         R = self._R_hat(y_u, x_u)
         var = self._var_R_hat(y_u, x_u)
+
+        if np.isnan(var):
+            return R, np.nan
+
+        if var < 0:
+            if np.isclose(var, 0.0, atol=1e-12):
+                var = 0.0
+            else:
+                warnings.warn(
+                    (
+                        "Negative variance encountered in design-consistent "
+                        "estimator; clipping to zero before sqrt."
+                    ),
+                    RuntimeWarning,
+                )
+                var = 0.0
+
         return R, np.sqrt(var)
 
     def users_accuracy(self, k):
