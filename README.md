@@ -1,9 +1,11 @@
 # Accuracy Assessment Tools
 
 The simplest way to run this is to open the Jupyter Notebook
-`AccuracyAssessmentTools.ipynb` in Google Colab and follow the instructions
-in the notebook. To open the notebook in Colab, open the file in github,
-then click the open in colab button at the top of the file.
+`AccuracyAssessmentTools-hfff.ipynb` in Google Colab and follow the instructions
+in the notebook.
+
+Open directly in Colab:
+https://colab.research.google.com/github/alemlakes/accuracyAssessmentTools-hfff/blob/main/AccuracyAssessmentTools-hfff.ipynb
 
 Requires pandas and numpy.
 
@@ -39,4 +41,97 @@ assessment = Olofsson(
 
 print(assessment.overall_accuracy())
 print(assessment.users_accuracy("forest"))
+```
+
+## GUE Usage Example
+
+`GUE` expects map and reference inputs as class-probability tables (one row per
+sample point), plus a strata column and a shared point id column.
+
+If probabilities are crisp, `GUE` returns the same accuracy and area estimates
+as `Stehman`.
+
+```python
+import pandas as pd
+from acc_assessment import GUE
+
+map_data = pd.DataFrame(
+    {
+        "forest": [0.9, 0.2, 0.6],
+        "water": [0.1, 0.8, 0.4],
+        "stratum": [1, 1, 2],
+        "id": [0, 1, 2],
+    }
+)
+
+ref_data = pd.DataFrame(
+    {
+        "forest": [1.0, 0.3, 0.5],
+        "water": [0.0, 0.7, 0.5],
+        "stratum": [1, 1, 2],
+        "id": [0, 1, 2],
+    }
+)
+
+strata_population = {1: 5000, 2: 3000}
+
+assessment = GUE(
+    map_data,
+    ref_data,
+    strata_col="stratum",
+    id_col="id",
+    strata_population=strata_population,
+)
+
+print(assessment.overall_accuracy())
+print(assessment.error_matrix())
+```
+
+## MCEM Usage Example
+
+`MCEM` runs Monte Carlo simulations by sampling crisp classes from map and
+reference probabilities at each point, then reports the mean estimate and a
+95% percentile interval.
+
+This simulation distribution captures both data uncertainty and sampling
+uncertainty in a single result.
+
+```python
+import pandas as pd
+from acc_assessment import MCEM
+
+map_data = pd.DataFrame(
+    {
+        "forest": [0.9, 0.2, 0.6],
+        "water": [0.1, 0.8, 0.4],
+        "stratum": [1, 1, 2],
+        "id": [0, 1, 2],
+    }
+)
+
+ref_data = pd.DataFrame(
+    {
+        "forest": [1.0, 0.3, 0.5],
+        "water": [0.0, 0.7, 0.5],
+        "stratum": [1, 1, 2],
+        "id": [0, 1, 2],
+    }
+)
+
+strata_population = {1: 5000, 2: 3000}
+
+assessment = MCEM(
+    map_data,
+    ref_data,
+    strata_col="stratum",
+    id_col="id",
+    strata_population=strata_population,
+    n_simulations=10000,
+)
+
+overall_mean, overall_ci = assessment.overall_accuracy()
+print(overall_mean, overall_ci)
+print(assessment.users_accuracy("forest"))
+print(assessment.producers_accuracy("forest"))
+print(assessment.area("forest"))
 ```
