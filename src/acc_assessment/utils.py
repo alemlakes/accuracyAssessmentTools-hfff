@@ -191,8 +191,29 @@ class AccuracyAssessment:
     def __repr__(self):
         def val_se(value, standard_error):
             output = f"{value:.4f}"
-            if standard_error is not None:
+            if standard_error is None:
+                return output
+
+            if isinstance(standard_error, tuple) and len(standard_error) == 2:
+                lower, upper = standard_error
+                output += f"  (95% CI: {lower:.4f}, {upper:.4f})"
+                return output
+
+            if isinstance(standard_error, list) and len(standard_error) == 2:
+                lower, upper = standard_error
+                output += f"  (95% CI: {lower:.4f}, {upper:.4f})"
+                return output
+
+            if np.ndim(standard_error) == 1 and np.size(standard_error) == 2:
+                lower, upper = np.asarray(standard_error, dtype=float)
+                output += f"  (95% CI: {lower:.4f}, {upper:.4f})"
+                return output
+
+            if np.isscalar(standard_error):
                 output += f"  +/- {standard_error:.4f}"
+                return output
+
+            output += f"  +/- {standard_error}"
             return output
 
         seperator = "\n" + ("=" * 40) + "\n"

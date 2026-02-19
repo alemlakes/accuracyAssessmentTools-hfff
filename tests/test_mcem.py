@@ -143,3 +143,35 @@ def test_mcem_error_matrix_returns_simulation_mean():
     matrix = mcem.error_matrix()
     assert np.isclose(matrix.values.sum(), 1.0)
     assert np.isclose(np.trace(matrix.values), 1.0)
+
+
+def test_mcem_repr_handles_interval_outputs():
+    map_data = pd.DataFrame(
+        {
+            "A": [0.8, 0.4, 0.3, 0.6],
+            "B": [0.2, 0.6, 0.7, 0.4],
+            "stratum": [1, 1, 2, 2],
+            "id": [0, 1, 2, 3],
+        }
+    )
+    ref_data = pd.DataFrame(
+        {
+            "A": [0.7, 0.5, 0.2, 0.4],
+            "B": [0.3, 0.5, 0.8, 0.6],
+            "stratum": [1, 1, 2, 2],
+            "id": [0, 1, 2, 3],
+        }
+    )
+
+    mcem = MCEM(
+        map_data,
+        ref_data,
+        strata_col="stratum",
+        id_col="id",
+        strata_population={1: 500, 2: 500},
+        n_simulations=100,
+        random_state=42,
+    )
+
+    output = str(mcem)
+    assert "95% CI" in output
