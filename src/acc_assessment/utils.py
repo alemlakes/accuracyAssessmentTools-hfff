@@ -77,8 +77,8 @@ def _expand_probabilities(data, map_col, ref_col, strata_col, id_col=None):
     # class values
     map_classes = pd.get_dummies(data[map_col])
     ref_classes = pd.get_dummies(data[ref_col])
-    unique_class_vals = data[map_col].unique().sort()
-    unique_ref_vals = data[ref_col].unique().sort()
+    unique_class_vals = np.sort(data[map_col].unique())
+    unique_ref_vals = np.sort(data[ref_col].unique())
     msg = "pd.get_dummies will fail b/c a class in ref is not represented in map"
     assert np.all(unique_class_vals == unique_ref_vals), msg
 
