@@ -1,11 +1,26 @@
 # Accuracy Assessment Tools
 
-The simplest way to run this is to open the Jupyter Notebook
-`AccuracyAssessmentTools-hfff.ipynb` in Google Colab and follow the instructions
-in the notebook.
+> ## Start Here (Recommended)
+> The notebook `AccuracyAssessmentTools-hfff.ipynb` is the primary workflow and
+> already performs the same end-to-end steps described in this README
+> (shared inputs, GUE/MCEM probabilistic assessment, `argmax` hardening,
+> and Stehman/Olofsson crisp comparison).
+>
+> If you only run one thing, run the notebook first.
+
+### Quick Start (Notebook only)
+
+1. Open `AccuracyAssessmentTools-hfff.ipynb` in Colab using the link below.
+2. Run cells from top to bottom.
+
+The simplest way to run this project is to open the Jupyter Notebook
+`AccuracyAssessmentTools-hfff.ipynb` in Google Colab and follow it top-to-bottom.
 
 Open directly in Colab:
 https://colab.research.google.com/github/alemlakes/accuracyAssessmentTools-hfff/blob/main/AccuracyAssessmentTools-hfff.ipynb
+
+The integrated README example below mirrors that notebook section so users can
+translate between notebook and script-style usage without changing assumptions.
 
 Requires pandas and numpy.
 
