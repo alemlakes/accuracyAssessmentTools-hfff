@@ -110,6 +110,32 @@ class ProbStandardizer:
     def from_multi_interpreter(self, df, id_col=None, strata_col=None):
         return self.from_counts(df, id_col=id_col, strata_col=strata_col)
 
+    def from_crisp(self, df, label_col="label", id_col=None, strata_col=None):
+        self._validate_unique_id(df, id_col=id_col)
+
+        if label_col not in df.columns:
+            raise ValueError(f"Missing required column: {label_col}")
+
+        labels = df[label_col]
+        if labels.isna().any():
+            raise ValueError(f"Column {label_col!r} contains missing values")
+
+        class_set = set(self.class_names)
+        unknown = sorted(set(labels) - class_set)
+        if unknown:
+            raise ValueError(
+                "Crisp labels contain values not in class_names: "
+                + ", ".join(repr(v) for v in unknown)
+            )
+
+        probs = pd.get_dummies(labels).reindex(columns=self.class_names, fill_value=0)
+        output = probs.astype(float)
+
+        meta = self._metadata_columns(df, id_col=id_col, strata_col=strata_col)
+        for col in meta:
+            output[col] = df[col].values
+        return output
+
     def from_binary_confidence(
         self,
         df,
