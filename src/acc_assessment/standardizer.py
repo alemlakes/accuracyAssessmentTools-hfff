@@ -26,12 +26,42 @@ class ProbStandardizer:
     Convert non-standard confidence inputs into per-row class probabilities.
     """
 
-    def __init__(self, class_names, id_col="id", strata_col="strata"):
+    def __init__(
+        self,
+        class_names,
+        id_col="id",
+        strata_col="strata",
+        require_unique_id=False,
+    ):
         if len(class_names) == 0:
             raise ValueError("class_names must contain at least one class")
         self.class_names = list(class_names)
         self.id_col = id_col
         self.strata_col = strata_col
+        self.require_unique_id = bool(require_unique_id)
+
+    def _resolve_id_name(self, id_col=None):
+        return self.id_col if id_col is None else id_col
+
+    def _class_block(self, df):
+        missing = [col for col in self.class_names if col not in df.columns]
+        if missing:
+            missing_list = ", ".join(repr(col) for col in missing)
+            raise ValueError(f"Missing required class columns: {missing_list}")
+        return df[self.class_names]
+
+    def _validate_unique_id(self, df, id_col=None):
+        if not self.require_unique_id:
+            return
+
+        id_name = self._resolve_id_name(id_col=id_col)
+        if id_name not in df.columns:
+            raise ValueError(
+                f"require_unique_id=True but id column {id_name!r} is missing"
+            )
+
+        if df[id_name].duplicated().any():
+            raise ValueError(f"Duplicate ids found in column {id_name!r}")
 
     def _metadata_columns(self, df, id_col=None, strata_col=None):
         keep = []
@@ -56,7 +86,8 @@ class ProbStandardizer:
         return class_df.div(row_sums, axis=0)
 
     def from_likert(self, df, id_col=None, strata_col=None):
-        class_df = df[self.class_names]
+        self._validate_unique_id(df, id_col=id_col)
+        class_df = self._class_block(df)
         probs = self._normalize_rows(class_df)
         output = probs[self.class_names].copy()
 
@@ -66,7 +97,8 @@ class ProbStandardizer:
         return output
 
     def from_counts(self, df, id_col=None, strata_col=None):
-        class_df = df[self.class_names]
+        self._validate_unique_id(df, id_col=id_col)
+        class_df = self._class_block(df)
         probs = self._normalize_rows(class_df)
         output = probs[self.class_names].copy()
 
@@ -88,6 +120,8 @@ class ProbStandardizer:
         id_col=None,
         strata_col=None,
     ):
+        self._validate_unique_id(df, id_col=id_col)
+
         if label_col not in df.columns:
             raise ValueError(f"Missing required column: {label_col}")
         if is_confident_col not in df.columns:

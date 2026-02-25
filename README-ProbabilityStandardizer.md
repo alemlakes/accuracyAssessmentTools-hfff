@@ -7,6 +7,10 @@ This guide documents the preparation helper in:
 It is useful when your input labels are not yet in the standard probabilistic
 format expected by the integrated workflow and by `GUE`/`MCEM`.
 
+Interactive notebook guide:
+
+- `ProbabilityStandardizer-Guide.ipynb`
+
 ## What the helper does
 
 The helper provides two core tools:
@@ -24,11 +28,18 @@ Output tables should contain:
 - each row summing to `1.0` (within tolerance),
 - optional metadata columns such as `id` and `strata`.
 
+For integrated map/reference workflows, keep class columns in the same order
+across both tables (for example, do not use `A,B,C` in one file and `B,A,C`
+in the other).
+
 ## Main API
 
-### `ProbStandardizer(class_names, id_col="id", strata_col="strata")`
+### `ProbStandardizer(class_names, id_col="id", strata_col="strata", require_unique_id=False)`
 
 Initialize with the class names used in your project.
+
+When `require_unique_id=True`, conversion methods enforce that the `id` column
+exists and has no duplicates.
 
 ### `from_likert(df, id_col=None, strata_col=None)`
 
@@ -91,8 +102,10 @@ print(standardizer.verify_standard_style(prob_df))  # True
 
 The helper raises clear errors for common data issues, including:
 
+- missing required class columns,
 - non-numeric or missing class values,
 - rows with non-positive total before normalization,
+- duplicate or missing id column when `require_unique_id=True`,
 - missing required columns in binary-confidence mode,
 - labels not present in `class_names`.
 

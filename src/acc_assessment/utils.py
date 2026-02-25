@@ -42,6 +42,18 @@ def load_integrated_probability_inputs(
                 f"Provide sampling strata in the separate strata-sample file."
             )
 
+    map_class_columns = [col for col in map_df.columns if col != id_col]
+    ref_class_columns = [col for col in ref_df.columns if col != id_col]
+    if len(map_class_columns) == 0:
+        raise ValueError("map table must include at least one class probability column")
+    if len(ref_class_columns) == 0:
+        raise ValueError("reference table must include at least one class probability column")
+    if map_class_columns != ref_class_columns:
+        raise ValueError(
+            "map and reference class probability columns must match in the same order. "
+            f"map order={map_class_columns}, reference order={ref_class_columns}"
+        )
+
     missing_sample = [
         col for col in [id_col, strata_col] if col not in strata_sample_df.columns
     ]

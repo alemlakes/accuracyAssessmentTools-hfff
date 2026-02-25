@@ -40,6 +40,9 @@ For preparing non-standard confidence inputs (Likert/count/binary confidence)
 into standard class-probability tables, see
 `README-ProbabilityStandardizer.md`.
 
+For an interactive preparation workflow with per-format examples and
+consistency checks, use `ProbabilityStandardizer-Guide.ipynb`.
+
 ## Expected inputs (integrated example)
 
 For the main integrated workflow, inputs are:
@@ -48,7 +51,7 @@ For the main integrated workflow, inputs are:
     - `id` (point identifier),
     - one column per map class with probabilities that sum to 1 per row.
 2. A reference probability table with matching `id` rows and the same class
-    probability columns.
+    probability columns in the **same order** as the map table.
 3. A sample strata table with columns `id` and `strata`.
 4. A strata population table with columns `strata` and `population`.
 

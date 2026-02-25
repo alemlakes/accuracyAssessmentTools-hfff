@@ -98,3 +98,27 @@ def test_load_integrated_probability_inputs_appends_strata_and_aligns_ref(tmp_pa
     assert ref_out["strata"].tolist() == ["a", "b"]
     assert pop_df_out.shape == (2, 2)
     assert pop_dict_out == {"a": 5, "b": 7}
+
+
+def test_load_integrated_probability_inputs_rejects_mismatched_class_order(tmp_path):
+    map_df = pd.DataFrame({"id": [1, 2], "A": [0.9, 0.2], "B": [0.1, 0.8]})
+    ref_df = pd.DataFrame({"id": [1, 2], "B": [0.2, 0.7], "A": [0.8, 0.3]})
+    strata_sample_df = pd.DataFrame({"id": [1, 2], "strata": ["a", "b"]})
+    strata_population_df = pd.DataFrame({"strata": ["a", "b"], "population": [5, 7]})
+
+    map_path = tmp_path / "map.csv"
+    ref_path = tmp_path / "ref.csv"
+    sample_path = tmp_path / "sample_strata.csv"
+    pop_path = tmp_path / "pop.csv"
+    map_df.to_csv(map_path, index=False)
+    ref_df.to_csv(ref_path, index=False)
+    strata_sample_df.to_csv(sample_path, index=False)
+    strata_population_df.to_csv(pop_path, index=False)
+
+    with pytest.raises(ValueError, match="same order"):
+        load_integrated_probability_inputs(
+            map_file=map_path,
+            ref_file=ref_path,
+            strata_sample_file=sample_path,
+            strata_population_file=pop_path,
+        )
