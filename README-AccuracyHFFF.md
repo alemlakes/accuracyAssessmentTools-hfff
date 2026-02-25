@@ -36,6 +36,10 @@ methods.
 2. Run the integrated four-method workflow below for an end-to-end example.
 3. Then run method-specific examples as needed.
 
+For preparing non-standard confidence inputs (Likert/count/binary confidence)
+into standard class-probability tables, see
+`README-ProbabilityStandardizer.md`.
+
 ## Expected inputs (integrated example)
 
 For the main integrated workflow, inputs are:
