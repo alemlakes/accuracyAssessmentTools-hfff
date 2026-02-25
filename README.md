@@ -42,11 +42,11 @@ For the main integrated workflow, inputs are:
 
 1. A map probability table with one row per sampled point, containing:
     - `id` (point identifier),
-    - `strata` (sampling stratum),
     - one column per map class with probabilities that sum to 1 per row.
 2. A reference probability table with matching `id` rows and the same class
     probability columns.
-3. A strata population table with columns `strata` and `population`.
+3. A sample strata table with columns `id` and `strata`.
+4. A strata population table with columns `strata` and `population`.
 
 The integrated workflow runs GUE and MCEM directly on the probabilistic
 tables, then hardens them with `argmax` to run Stehman and Olofsson on the
@@ -67,8 +67,8 @@ run **GUE** and **MCEM** directly, then harden to crisp labels and run
 **Stehman** and **Olofsson** for direct comparison.
 
 Workflow:
-1. Set three input file paths (map probabilities, reference probabilities, and strata populations).
-2. Load the three files and derive shared inputs.
+1. Set four input file paths (map probabilities, reference probabilities, sample strata assignments, and strata populations).
+2. Load the four files and derive shared inputs.
 3. Run GUE (analytical) and MCEM (simulation) on probabilistic inputs.
 4. Convert probabilities to crisp classes using `argmax`.
 5. Run Stehman and Olofsson on the hardened table.
@@ -81,19 +81,22 @@ from acc_assessment.gue import GUE
 from acc_assessment.mcem import MCEM
 from acc_assessment.stehman import Stehman
 from acc_assessment.olofsson import Olofsson
+from acc_assessment import load_integrated_probability_inputs
 
-# 1) Point to the same three input files used in the notebook example
-map_file_same = "./tests/map_data_table.csv"
-ref_file_same = "./tests/ref_data_table.csv"
+# 1) Point to the same four input files used in the notebook example
+map_file_same = "./tests/map_data_probabilities_table.csv"
+ref_file_same = "./tests/ref_data_probabilities_table.csv"
+sample_strata_file_same = "./tests/sample_strata_table.csv"
 strata_file_same = "./tests/strata_population_table.csv"
 
-# 2) Load shared probabilistic inputs
-prob_map_same = pd.read_csv(map_file_same)
-prob_ref_same = pd.read_csv(ref_file_same)
-strata_population_df = pd.read_csv(strata_file_same)
-
-strata_population_same = dict(
-    zip(strata_population_df["strata"], strata_population_df["population"])
+# 2) Load shared probabilistic inputs from four files
+prob_map_same, prob_ref_same, strata_population_df, strata_population_same = (
+    load_integrated_probability_inputs(
+        map_file=map_file_same,
+        ref_file=ref_file_same,
+        strata_sample_file=sample_strata_file_same,
+        strata_population_file=strata_file_same,
+    )
 )
 class_cols_same = [c for c in prob_map_same.columns if c not in ["strata", "id"]]
 target_class_same = class_cols_same[0]

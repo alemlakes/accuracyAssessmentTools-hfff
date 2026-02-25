@@ -2,6 +2,114 @@ import numpy as np
 import pandas as pd
 
 
+def load_integrated_probability_inputs(
+    map_file,
+    ref_file,
+    strata_sample_file,
+    strata_population_file,
+    id_col="id",
+    strata_col="strata",
+):
+    """
+    Load and validate four-file probabilistic inputs for integrated workflows.
+
+    Required files:
+    1) map probability table (must include id, must NOT include strata)
+    2) reference probability table (must include id, must NOT include strata)
+    3) sample strata table (must include id and strata)
+    4) strata population table (must include strata and population)
+
+    Returns:
+        4-tuple:
+            - map probabilities with appended strata column
+            - reference probabilities aligned to map ids with appended strata
+            - strata population dataframe
+            - strata population dictionary
+    """
+    map_df = pd.read_csv(map_file)
+    ref_df = pd.read_csv(ref_file)
+    strata_sample_df = pd.read_csv(strata_sample_file)
+    strata_population_df = pd.read_csv(strata_population_file)
+
+    for table_name, table_df in [("map", map_df), ("reference", ref_df)]:
+        if id_col not in table_df.columns:
+            raise ValueError(
+                f"{table_name} table is missing required column: '{id_col}'"
+            )
+        if strata_col in table_df.columns:
+            raise ValueError(
+                f"{table_name} table must not include '{strata_col}'. "
+                f"Provide sampling strata in the separate strata-sample file."
+            )
+
+    missing_sample = [
+        col for col in [id_col, strata_col] if col not in strata_sample_df.columns
+    ]
+    if missing_sample:
+        raise ValueError(
+            "strata_sample_file is missing required columns: "
+            + ", ".join(repr(col) for col in missing_sample)
+        )
+
+    missing_population = [
+        col for col in [strata_col, "population"]
+        if col not in strata_population_df.columns
+    ]
+    if missing_population:
+        raise ValueError(
+            "strata_population_file is missing required columns: "
+            + ", ".join(repr(col) for col in missing_population)
+        )
+
+    if map_df[id_col].duplicated().any():
+        raise ValueError("map table contains duplicated ids")
+    if ref_df[id_col].duplicated().any():
+        raise ValueError("reference table contains duplicated ids")
+    if strata_sample_df[id_col].duplicated().any():
+        raise ValueError("strata-sample table contains duplicated ids")
+    if strata_population_df[strata_col].duplicated().any():
+        raise ValueError("strata population table contains duplicated strata")
+
+    map_ids = set(map_df[id_col])
+    ref_ids = set(ref_df[id_col])
+    sample_ids = set(strata_sample_df[id_col])
+    if map_ids != ref_ids:
+        raise ValueError("map and reference tables must contain the same id values")
+    if map_ids != sample_ids:
+        raise ValueError(
+            "map/reference ids and strata-sample ids must match exactly"
+        )
+
+    ref_aligned = (
+        ref_df.set_index(id_col).loc[map_df[id_col]].reset_index()
+    )
+    strata_lookup = strata_sample_df[[id_col, strata_col]]
+    map_with_strata = map_df.merge(strata_lookup, on=id_col, how="left", validate="one_to_one")
+    ref_with_strata = ref_aligned.merge(
+        strata_lookup,
+        on=id_col,
+        how="left",
+        validate="one_to_one",
+    )
+
+    if map_with_strata[strata_col].isna().any() or ref_with_strata[strata_col].isna().any():
+        raise ValueError("Missing strata assignment for one or more ids")
+
+    sample_strata = set(strata_sample_df[strata_col])
+    population_strata = set(strata_population_df[strata_col])
+    missing_pop = sample_strata - population_strata
+    if missing_pop:
+        raise ValueError(
+            "strata population table is missing sampled strata: "
+            + ", ".join(sorted(map(str, missing_pop)))
+        )
+
+    strata_population = dict(
+        zip(strata_population_df[strata_col], strata_population_df["population"])
+    )
+    return map_with_strata, ref_with_strata, strata_population_df, strata_population
+
+
 def build_error_matrix(map_classes, ref_classes):
     all_classes = np.unique(np.vstack([map_classes, ref_classes]))
     num_classes = len(all_classes)
