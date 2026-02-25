@@ -26,7 +26,7 @@ Output tables should contain:
 
 - one column per class probability (e.g., `Forest`, `Water`, `Agriculture`),
 - each row summing to `1.0` (within tolerance),
-- optional metadata columns such as `id` and `strata`.
+- optional metadata columns such as `id`.
 
 For integrated map/reference workflows, keep class columns in the same order
 across both tables (for example, do not use `A,B,C` in one file and `B,A,C`
@@ -34,7 +34,7 @@ in the other).
 
 ## Main API
 
-### `ProbStandardizer(class_names, id_col="id", strata_col="strata", require_unique_id=False)`
+### `ProbStandardizer(class_names, id_col="id", require_unique_id=False)`
 
 Initialize with the class names used in your project.
 
@@ -46,21 +46,35 @@ exists and has no duplicates.
 Use this order when deciding mode:
 
 1. **`from_crisp`**: you have exactly one class label per row.
-2. **`from_binary_confidence`**: you have one class label plus a confidence flag.
-3. **`from_likert`**: you have per-class rating/score columns.
-4. **`from_multi_interpreter`**: you have per-class vote counts from multiple interpreters.
-5. **`from_counts`**: you have generic per-class count totals.
+2. **`from_confidence`**: you have one class label plus a numeric confidence value in `[0, 1]`.
+3. **`from_binary_confidence`**: you have one class label plus a confidence flag.
+4. **`from_likert`**: you have per-class rating/score columns.
+5. **`from_multi_interpreter`**: you have per-class vote counts from multiple interpreters.
+6. **`from_counts`**: you have generic per-class count totals.
 
 ## How each mode is converted (math)
 
 ### Crisp labels (`from_crisp`)
 
-Each row has one class label. Output is one-hot probabilities:
+Each row has one class label. Output is binary confidence values of 1 and 0 across class columns:
 
 - selected class = `1.0`
 - all other classes = `0.0`
 
 Example with class order `[A, B, C]` and label `C` gives `[0, 0, 1]`.
+
+### Numeric confidence (`from_confidence`)
+
+Each row has a label and a numeric confidence value in `[0, 1]`.
+
+- selected class gets that confidence value
+- remaining probability mass is split evenly across other classes
+
+For $K$ classes, selected confidence $p_s$:
+
+$$
+p_{other} = \frac{1 - p_s}{K - 1}
+$$
 
 ### Binary confidence (`from_binary_confidence`)
 
@@ -94,10 +108,19 @@ data meaning (ratings vs tallies), not by conversion formula.
 `from_multi_interpreter` is an alias of `from_counts`, so it uses the same
 normalization shown above.
 
-### `from_crisp(df, label_col="label", id_col=None, strata_col=None)`
+### `from_crisp(df, label_col="label", id_col=None)`
 
-Converts a single crisp class label per row into one-hot class probabilities
+Converts a single crisp class label per row into binary confidence values of 1 and 0 across class columns
 (for example, `Forest` becomes `[1, 0, 0]` across class columns).
+
+### `from_confidence(df, label_col="label", confidence_col="confidence", id_col=None)`
+
+Converts one selected class label plus numeric confidence into probabilities.
+
+Required columns:
+
+- `label_col` (default `"label"`)
+- `confidence_col` (default `"confidence"`) with values in `[0, 1]`.
 
 ### `from_binary_confidence(...)`
 
@@ -114,15 +137,15 @@ By default:
 - non-confident label gets `low_p=0.40`
 - remaining probability mass is distributed evenly across other classes.
 
-### `from_likert(df, id_col=None, strata_col=None)`
+### `from_likert(df, id_col=None)`
 
 Treats class columns as scores and normalizes each row to probabilities.
 
-### `from_multi_interpreter(df, id_col=None, strata_col=None)`
+### `from_multi_interpreter(df, id_col=None)`
 
 Alias of `from_counts` for multi-interpreter vote tables.
 
-### `from_counts(df, id_col=None, strata_col=None)`
+### `from_counts(df, id_col=None)`
 
 Treats class columns as vote/count totals and normalizes each row.
 
@@ -139,7 +162,6 @@ from acc_assessment.standardizer import ProbStandardizer
 raw = pd.DataFrame(
     {
         "id": [1, 2, 3],
-        "strata": ["a", "a", "f"],
         "Forest": [5, 2, 1],
         "Water": [1, 5, 2],
         "Agriculture": [0, 1, 7],
@@ -149,7 +171,6 @@ raw = pd.DataFrame(
 standardizer = ProbStandardizer(
     class_names=["Forest", "Water", "Agriculture"],
     id_col="id",
-    strata_col="strata",
 )
 
 prob_df = standardizer.from_counts(raw)

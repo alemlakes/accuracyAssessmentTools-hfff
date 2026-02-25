@@ -98,3 +98,46 @@ def test_from_crisp_rejects_unknown_label_values():
 
     with pytest.raises(ValueError, match="not in class_names"):
         standardizer.from_crisp(df, label_col="label")
+
+
+def test_from_confidence_uses_row_confidence_values():
+    standardizer = ProbStandardizer(class_names=["Forest", "Water", "Agriculture"])
+    df = pd.DataFrame(
+        {
+            "id": [34, 35],
+            "strata": ["a", "f"],
+            "label": ["Water", "Forest"],
+            "confidence": [0.6, 0.9],
+        }
+    )
+
+    output = standardizer.from_confidence(
+        df,
+        label_col="label",
+        confidence_col="confidence",
+    )
+
+    expected = pd.DataFrame(
+        {
+            "Forest": [0.2, 0.9],
+            "Water": [0.6, 0.05],
+            "Agriculture": [0.2, 0.05],
+            "strata": ["a", "f"],
+            "id": [34, 35],
+        }
+    )
+
+    pd.testing.assert_frame_equal(output.reset_index(drop=True), expected)
+
+
+def test_from_confidence_rejects_values_outside_unit_interval():
+    standardizer = ProbStandardizer(class_names=["Forest", "Water"])
+    df = pd.DataFrame(
+        {
+            "label": ["Forest", "Water"],
+            "confidence": [0.7, 1.2],
+        }
+    )
+
+    with pytest.raises(ValueError, match="must be in \[0, 1\]"):
+        standardizer.from_confidence(df)

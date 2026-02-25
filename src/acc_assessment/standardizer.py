@@ -136,6 +136,57 @@ class ProbStandardizer:
             output[col] = df[col].values
         return output
 
+    def from_confidence(
+        self,
+        df,
+        label_col="label",
+        confidence_col="confidence",
+        id_col=None,
+        strata_col=None,
+    ):
+        self._validate_unique_id(df, id_col=id_col)
+
+        if label_col not in df.columns:
+            raise ValueError(f"Missing required column: {label_col}")
+        if confidence_col not in df.columns:
+            raise ValueError(f"Missing required column: {confidence_col}")
+
+        labels = df[label_col]
+        if labels.isna().any():
+            raise ValueError(f"Column {label_col!r} contains missing values")
+
+        confidences = pd.to_numeric(df[confidence_col], errors="coerce")
+        if confidences.isna().any():
+            raise ValueError(
+                f"Column {confidence_col!r} contains missing or non-numeric values"
+            )
+        if ((confidences < 0) | (confidences > 1)).any():
+            raise ValueError(f"Column {confidence_col!r} must be in [0, 1]")
+
+        class_set = set(self.class_names)
+        probs = np.zeros((len(df), len(self.class_names)), dtype=float)
+
+        for idx, row in df.reset_index(drop=True).iterrows():
+            label = row[label_col]
+            if label not in class_set:
+                raise ValueError(f"Label {label!r} is not in class_names")
+
+            assigned = float(row[confidence_col])
+            if len(self.class_names) == 1:
+                probs[idx, 0] = 1.0
+                continue
+
+            remainder = 1.0 - assigned
+            other_p = remainder / (len(self.class_names) - 1)
+            probs[idx, :] = other_p
+            probs[idx, self.class_names.index(label)] = assigned
+
+        output = pd.DataFrame(probs, columns=self.class_names)
+        meta = self._metadata_columns(df, id_col=id_col, strata_col=strata_col)
+        for col in meta:
+            output[col] = df[col].values
+        return output
+
     def from_binary_confidence(
         self,
         df,
