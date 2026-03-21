@@ -1,0 +1,30 @@
+Heading,SubHeading?,Description
+tracker,,Unique identifier for point/user combo
+longitude,,Longitude
+latitude,,Latitude
+stratumIdIntPts,,Stratum the point belongs too. (See stratification methods here.)
+reEval,,Point was revisited (1)/ Point was not revisited (0)
+user,,Interpreter ID number.
+<Interpreter Observation Columns>,,
+Across Epochs,Rec_,Most recent interpreter observation. 
+,Ave_,Average of all interpreter observations. 
+,E<#>,"Epoch # (1-n represent epochs; 9999 respresents unpaired, not revisited, overflow points)"
+Value Type,Prob_,Interpreter probability full value 0-100
+,TF_,"Interpreter probability converted to binary (1 is >=50, 0 is <50)"
+Time Period,12month_,December 2021 to January 2023
+,6month_,December 2021 to July 2022
+,4month_,December 2021 to May 2022 (April was too cloudy to be used for interpretation.)
+Change Type,Growth,Probability that natural vegetation increased during the time period.
+,Loss,Probability that natural vegetation decreased during the time period. 
+,Stable,Probability that natural vegetation did not change during the time period. 
+Image_Condition,,"Magnitude of the effect that image quality had on their probability values (helped/hindered/NAN: 0-100). For example, if clouds or haze covered the point of interest then this would lower their probability/certainty. "
+Spatial_Context,,"Magnitude of the effect that spatial context had on their probability values (helped/hindered/NAN: 0-100). For example, if the point was on the edge of a change/not change then the answer may be different if the image was misregistered at all, so their probability/certainty was lowered. "
+Spectral_Capacity,,"Magnitude of the effect that their belief that the sensor has/does not have the radiometric capability to detect the change seen had on their probability values (helped/hindered/NAN: 0-100). For example, if it appears that maybe only a small amount of thinning occurred, their probability/certainty would be lower sincethe signal of the change may or may not be overshadowed by noise. (Robert explains this better, I need to ask him again.)"
+id,,Unique identifier for point/user combo
+plotId,,Unique identifier for point
+Valid_Name,,Original user name
+Comment,,User's comments on how they made their decision. 
+User_IP,,User's IP address when they made the observation. 
+user_elapsed_time,,"Time it took for user to decide their probabilities, contibuting factors to uncertainty, and comments. "
+Valid_Date,,Date that observation was made. 
+LT_YOD,,Year of LandTrendr fitted values that were displayed in the interace maybe? I need to confirm this with Peter. 
