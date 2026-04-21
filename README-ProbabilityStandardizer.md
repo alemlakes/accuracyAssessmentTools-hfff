@@ -49,8 +49,8 @@ Use this order when deciding mode:
 2. **`from_confidence`**: you have one class label plus a numeric confidence value in `[0, 1]`.
 3. **`from_binary_confidence`**: you have one class label plus a confidence flag.
 4. **`from_likert`**: you have per-class rating/score columns.
-5. **`from_multi_interpreter`**: you have per-class vote counts from multiple interpreters.
-6. **`from_counts`**: you have generic per-class count totals.
+5. **`from_votes`**: you have one row per point with per-class integer vote totals.
+6. **`from_multi_interpreter_vectors`**: you have multiple rows per point, one probability vector per interpreter, and you want the per-point average vector.
 
 ## How each mode is converted (math)
 
@@ -89,7 +89,7 @@ $$
 p_{other} = \frac{1 - p_s}{K - 1}
 $$
 
-### Likert scores (`from_likert`) and counts (`from_counts`)
+### Likert scores (`from_likert`) and votes (`from_votes`)
 
 These two modes use the **same transformation** in this implementation:
 row-wise normalization of class columns.
@@ -100,13 +100,30 @@ $$
 p_k = \frac{x_k}{\sum_{j=1}^{K} x_j}
 $$
 
-So yes: mathematically, Likert and counts are equivalent here; they differ by
+So yes: mathematically, Likert and votes are equivalent here; they differ by
 data meaning (ratings vs tallies), not by conversion formula.
 
-### Multi-interpreter (`from_multi_interpreter`)
+### Vote tables (`from_votes`)
 
-`from_multi_interpreter` is an alias of `from_counts`, so it uses the same
-normalization shown above.
+`from_votes` treats each row as a per-point tally over classes and row-normalizes
+that tally into probabilities.
+
+### Multi-interpreter vectors (`from_multi_interpreter_vectors`)
+
+This mode is different from vote counting. It expects multiple rows per point,
+each containing a class vector from one interpreter. The method first
+row-normalizes each interpreter vector and then averages those vectors within
+each point id.
+
+For point $i$ with $n_i$ interpreters and per-interpreter vectors
+$p^{(1)}, p^{(2)}, \ldots, p^{(n_i)}$:
+
+$$
+\bar{p}_i = \frac{1}{n_i} \sum_{m=1}^{n_i} p^{(m)}
+$$
+
+If a strata column is present, it must be consistent across all rows for the
+same point id.
 
 ### `from_crisp(df, label_col="label", id_col=None)`
 
@@ -141,13 +158,14 @@ By default:
 
 Treats class columns as scores and normalizes each row to probabilities.
 
-### `from_multi_interpreter(df, id_col=None)`
+### `from_votes(df, id_col=None)`
 
-Alias of `from_counts` for multi-interpreter vote tables.
+Treats class columns as vote totals and normalizes each row.
 
-### `from_counts(df, id_col=None)`
+### `from_multi_interpreter_vectors(df, id_col=None)`
 
-Treats class columns as vote/count totals and normalizes each row.
+Treats repeated rows with the same id as per-interpreter class vectors,
+normalizes each row, and then averages those vectors within each id.
 
 ### `verify_standard_style(df, tolerance=0.001)`
 
@@ -173,7 +191,7 @@ standardizer = ProbStandardizer(
     id_col="id",
 )
 
-prob_df = standardizer.from_counts(raw)
+prob_df = standardizer.from_votes(raw)
 print(standardizer.verify_standard_style(prob_df))  # True
 ```
 

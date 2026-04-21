@@ -43,6 +43,9 @@ class ProbStandardizer:
     def _resolve_id_name(self, id_col=None):
         return self.id_col if id_col is None else id_col
 
+    def _resolve_strata_name(self, strata_col=None):
+        return self.strata_col if strata_col is None else strata_col
+
     def _class_block(self, df):
         missing = [col for col in self.class_names if col not in df.columns]
         if missing:
@@ -65,14 +68,27 @@ class ProbStandardizer:
 
     def _metadata_columns(self, df, id_col=None, strata_col=None):
         keep = []
-        id_name = self.id_col if id_col is None else id_col
-        strata_name = self.strata_col if strata_col is None else strata_col
+        id_name = self._resolve_id_name(id_col=id_col)
+        strata_name = self._resolve_strata_name(strata_col=strata_col)
 
         if strata_name in df.columns:
             keep.append(strata_name)
         if id_name in df.columns:
             keep.append(id_name)
         return keep
+
+    def _copy_with_metadata(self, df, probs, id_col=None, strata_col=None):
+        output = probs[self.class_names].copy()
+        meta = self._metadata_columns(df, id_col=id_col, strata_col=strata_col)
+        for col in meta:
+            output[col] = df[col].values
+        return output
+
+    def _require_id_column(self, df, id_col=None, context="input"):
+        id_name = self._resolve_id_name(id_col=id_col)
+        if id_name not in df.columns:
+            raise ValueError(f"{context} is missing required id column: {id_name!r}")
+        return id_name
 
     def _normalize_rows(self, class_df):
         class_df = class_df.apply(pd.to_numeric, errors="coerce")
@@ -89,26 +105,44 @@ class ProbStandardizer:
         self._validate_unique_id(df, id_col=id_col)
         class_df = self._class_block(df)
         probs = self._normalize_rows(class_df)
-        output = probs[self.class_names].copy()
+        return self._copy_with_metadata(df, probs, id_col=id_col, strata_col=strata_col)
 
-        meta = self._metadata_columns(df, id_col=id_col, strata_col=strata_col)
-        for col in meta:
-            output[col] = df[col].values
-        return output
-
-    def from_counts(self, df, id_col=None, strata_col=None):
+    def from_votes(self, df, id_col=None, strata_col=None):
         self._validate_unique_id(df, id_col=id_col)
         class_df = self._class_block(df)
         probs = self._normalize_rows(class_df)
-        output = probs[self.class_names].copy()
+        return self._copy_with_metadata(df, probs, id_col=id_col, strata_col=strata_col)
 
-        meta = self._metadata_columns(df, id_col=id_col, strata_col=strata_col)
-        for col in meta:
-            output[col] = df[col].values
+    def from_multi_interpreter_vectors(self, df, id_col=None, strata_col=None):
+        id_name = self._require_id_column(
+            df,
+            id_col=id_col,
+            context="Multi-interpreter vector input",
+        )
+        strata_name = self._resolve_strata_name(strata_col=strata_col)
+
+        class_df = self._class_block(df)
+        probs = self._normalize_rows(class_df)
+
+        grouped = probs.copy()
+        grouped[id_name] = df[id_name].values
+        grouped = grouped.groupby(id_name, sort=False)[self.class_names].mean().reset_index()
+
+        if strata_name in df.columns:
+            strata_df = df[[id_name, strata_name]].copy()
+            n_unique = strata_df.groupby(id_name, sort=False)[strata_name].nunique(dropna=False)
+            if (n_unique > 1).any():
+                raise ValueError(
+                    f"Each id must map to exactly one {strata_name!r} value in multi-interpreter vector input"
+                )
+            strata_df = strata_df.drop_duplicates(subset=[id_name])
+            grouped = grouped.merge(strata_df, on=id_name, how="left", validate="one_to_one")
+
+        output = grouped[self.class_names].copy()
+        if strata_name in grouped.columns:
+            output[strata_name] = grouped[strata_name].values
+        output[id_name] = grouped[id_name].values
         return output
-
-    def from_multi_interpreter(self, df, id_col=None, strata_col=None):
-        return self.from_counts(df, id_col=id_col, strata_col=strata_col)
 
     def from_crisp(self, df, label_col="label", id_col=None, strata_col=None):
         self._validate_unique_id(df, id_col=id_col)
@@ -130,11 +164,7 @@ class ProbStandardizer:
 
         probs = pd.get_dummies(labels).reindex(columns=self.class_names, fill_value=0)
         output = probs.astype(float)
-
-        meta = self._metadata_columns(df, id_col=id_col, strata_col=strata_col)
-        for col in meta:
-            output[col] = df[col].values
-        return output
+        return self._copy_with_metadata(df, output, id_col=id_col, strata_col=strata_col)
 
     def from_confidence(
         self,
@@ -182,10 +212,7 @@ class ProbStandardizer:
             probs[idx, self.class_names.index(label)] = assigned
 
         output = pd.DataFrame(probs, columns=self.class_names)
-        meta = self._metadata_columns(df, id_col=id_col, strata_col=strata_col)
-        for col in meta:
-            output[col] = df[col].values
-        return output
+        return self._copy_with_metadata(df, output, id_col=id_col, strata_col=strata_col)
 
     def from_binary_confidence(
         self,
@@ -228,10 +255,7 @@ class ProbStandardizer:
             probs[idx, self.class_names.index(label)] = assigned
 
         output = pd.DataFrame(probs, columns=self.class_names)
-        meta = self._metadata_columns(df, id_col=id_col, strata_col=strata_col)
-        for col in meta:
-            output[col] = df[col].values
-        return output
+        return self._copy_with_metadata(df, output, id_col=id_col, strata_col=strata_col)
 
     def verify_standard_style(self, df, tolerance=0.001):
         return verify_standard_structure(df, self.class_names, tolerance=tolerance)
